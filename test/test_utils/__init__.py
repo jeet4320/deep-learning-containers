@@ -9,6 +9,7 @@ import sys
 import git
 import pytest
 
+import boto3
 from botocore.exceptions import ClientError
 from invoke import run
 from invoke.context import Context
@@ -180,6 +181,27 @@ def is_time_for_canary_safety_scan():
     """
     current_utc_time = time.gmtime()
     return current_utc_time.tm_hour == 16 and (0 < current_utc_time.tm_min < 20)
+
+
+# Now we can skip EFA tests on pipeline without making any source code change
+def are_efa_tests_disabled():
+    disable_efa_tests = is_pr_context() and os.getenv("DISABLE_EFA_TESTS", "False").lower() == "true"
+
+    try:
+        s3_client = boto3.client('s3')
+        sts_client = boto3.client('sts')
+        account_id = sts_client.get_caller_identity().get('Account')
+        result = s3_client.get_object(Bucket=f"dlc-cicd-helper-{account_id}", Key="override_tests_flags.json")
+        json_content = json.loads(result["Body"].read().decode('utf-8'))
+        if "disable_efa_tests" in json_content:
+            override_disable_efa_tests = json_content["disable_efa_tests"].lower() == "true"
+        else:
+            override_disable_efa_tests = False
+    except ClientError as e:
+        override_disable_efa_tests = False
+        LOGGER.error("ClientError when performing S3/STS operation. Exception: {}".format(e))
+
+    return disable_efa_tests or override_disable_efa_tests
 
 
 def run_subprocess_cmd(cmd, failure="Command failed"):
