@@ -175,7 +175,7 @@ def test_smmodelparallel_mnist_multigpu_multinode(ecr_image, instance_type, py_v
                 "mpi": {
                     "enabled": True,
                     "processes_per_host": num_processes,
-                    "custom_mpi_options": "-verbose --mca orte_base_help_aggregate 0 -x SMDEBUG_LOG_LEVEL=error -x OMPI_MCA_btl_vader_single_copy_mechanism=none",
+                    "custom_mpi_options": "-verbose --mca orte_base_help_aggregate 0 -x SMDEBUG_LOG_LEVEL=error -x OMPI_MCA_btl_vader_single_copy_mechanism=none -x FI_EFA_USE_DEVICE_RDMA=1 -x FI_PROVIDER=efa -x RDMAV_FORK_SAFE=1 ",
                 },
             },
         )
@@ -214,8 +214,7 @@ def test_smdataparallel_mnist_script_mode_multigpu(ecr_image, instance_type, py_
 @pytest.mark.model("mnist")
 @pytest.mark.skip_py2_containers
 @pytest.mark.flaky(reruns=2)
-# @pytest.mark.parametrize('instance_types', ["ml.p3.16xlarge", "ml.p3dn.24xlarge"])
-@pytest.mark.parametrize('instance_types', ["ml.p3.16xlarge"])
+@pytest.mark.parametrize('instance_types', ["ml.p3.16xlarge", "ml.p3dn.24xlarge"])
 def test_smdataparallel_mnist(instance_types, ecr_image, py_version, sagemaker_session, tmpdir):
     """
     Tests smddprun command via Estimator API distribution parameter
@@ -240,6 +239,7 @@ def test_smdataparallel_mnist(instance_types, ecr_image, py_version, sagemaker_s
 @pytest.mark.integration("smdataparallel_smmodelparallel")
 @pytest.mark.model("mnist")
 @pytest.mark.parametrize('instance_types', ["ml.p3.16xlarge"])
+@pytest.mark.skip(reason="Consider reworking these tests after re:Invent releases are done")
 def test_smmodelparallel_smdataparallel_mnist(instance_types, ecr_image, py_version, sagemaker_session, tmpdir):
     """
     Tests SM Distributed DataParallel and ModelParallel single-node via script mode
