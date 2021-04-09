@@ -50,7 +50,7 @@ def test_smmodelparallel(sagemaker_session, instance_type, ecr_image, tmpdir, fr
                                "mpi": {
                                    "enabled": True,
                                    "processes_per_host": num_processes,
-                                   "custom_mpi_options": "-verbose --mca orte_base_help_aggregate 0",
+                                   "custom_mpi_options": "-verbose --mca orte_base_help_aggregate 0 -x FI_EFA_USE_DEVICE_RDMA=1 -x FI_PROVIDER=efa -x RDMAV_FORK_SAFE=1 ",
                                 }
                            },
                            sagemaker_session=sagemaker_session,
@@ -87,7 +87,7 @@ def test_smmodelparallel_multinode(sagemaker_session, instance_type, ecr_image, 
                                "mpi": {
                                    "enabled": True,
                                    "processes_per_host": num_processes,
-                                   "custom_mpi_options": "-verbose --mca orte_base_help_aggregate 0",
+                                   "custom_mpi_options": "-verbose --mca orte_base_help_aggregate 0 -x FI_EFA_USE_DEVICE_RDMA=1 -x FI_PROVIDER=efa -x RDMAV_FORK_SAFE=1 ",
                                 }
                            },
                            sagemaker_session=sagemaker_session,
