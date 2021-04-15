@@ -17,6 +17,7 @@ import os
 import boto3
 import pytest
 from sagemaker.pytorch import PyTorch
+from sagemaker import Session 
 from six.moves.urllib.parse import urlparse
 from test.test_utils import get_framework_and_version_from_tag, get_cuda_version_from_tag
 from packaging.version import Version
@@ -26,7 +27,7 @@ from ...integration import (data_dir, dist_operations_path, fastai_path, mnist_s
 from ...integration.sagemaker.timeout import timeout
 
 MULTI_GPU_INSTANCE = 'ml.p3.8xlarge'
-
+RESOURCE_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'resources')
 
 def validate_or_skip_smmodelparallel(ecr_image):
     if not can_run_smmodelparallel(ecr_image):
@@ -181,6 +182,35 @@ def test_smmodelparallel_mnist_multigpu_multinode(ecr_image, instance_type, py_v
         )
         pytorch.fit()
 
+
+@pytest.mark.integration("smmodelparallel")
+@pytest.mark.model("mnist")
+@pytest.mark.processor("gpu")
+@pytest.mark.skip_cpu
+@pytest.mark.efa()
+@pytest.mark.skip_py2_containers
+def test_smmodelparallel_mnist_sanity_efa(iad_ecr_image, efa_instance_type, iad_sagemaker_session):
+    """
+    Tests pt mnist command via script mode
+    """
+    validate_or_skip_smmodelparallel(iad_ecr_image)
+    efa_test_path = os.path.join(RESOURCE_PATH, 'efa', 'test_efa.sh')
+    with timeout(minutes=DEFAULT_TIMEOUT):
+        pytorch = PyTorch(
+            entry_point=efa_test_path,
+            role='SageMakerRole',
+            image_uri=iad_ecr_image,
+            instance_count=1,
+            instance_type=efa_instance_type,
+            sagemaker_session=iad_sagemaker_session,
+            distribution={
+                "mpi": {
+                    "enabled": True,
+                    "processes_per_host": 1
+                },
+            },
+        )
+        pytorch.fit()
 
 @pytest.mark.integration("smdataparallel")
 @pytest.mark.model("mnist")

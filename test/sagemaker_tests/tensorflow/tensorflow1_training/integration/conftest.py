@@ -19,8 +19,8 @@ import boto3
 import pytest
 from sagemaker import LocalSession, Session
 from sagemaker.tensorflow import TensorFlow
-
-from ..integration import NO_P2_REGIONS, NO_P3_REGIONS, get_ecr_registry
+from test.test_utils import ecr as ecr_utils
+from ..integration import NO_P2_REGIONS, NO_P3_REGIONS, NO_P4_REGIONS, get_ecr_registry
 
 logger = logging.getLogger(__name__)
 logging.getLogger('boto').setLevel(logging.INFO)
@@ -96,6 +96,34 @@ def sagemaker_session(region):
 
 
 @pytest.fixture(scope='session')
+def iad_region(request):
+    return "us-east-1"
+    
+
+@pytest.fixture(scope='session')
+def iad_sagemaker_session(iad_region):
+    return Session(boto_session=boto3.Session(region_name=iad_region))
+
+
+@pytest.fixture(scope='session')
+def efa_instance_type():
+    default_instance_type = "ml.p3dn.24xlarge"
+    return default_instance_type
+
+
+@pytest.fixture(scope='session')
+def iad_ecr_image(ecr_image, iad_region):
+    """
+    It uploads image to IAD region and return image uri
+    """
+    image_repo_uri, image_tag = ecr_image.split(":")
+    _, image_repo_name = image_repo_uri.split("/")
+    target_image_repo_name = f"{image_repo_name}"
+    iad_ecr_image = ecr_utils.reupload_image_to_test_ecr(ecr_image, target_image_repo_name, iad_region)
+    return iad_ecr_image
+
+
+@pytest.fixture(scope='session')
 def sagemaker_local_session(region):
     return LocalSession(boto_session=boto3.Session(region_name=region))
 
@@ -136,9 +164,10 @@ def skip_by_device_type(request, processor):
 
 @pytest.fixture(autouse=True)
 def skip_gpu_instance_restricted_regions(region, instance_type):
-    if (region in NO_P2_REGIONS and instance_type.startswith('ml.p2')) or \
-            (region in NO_P3_REGIONS and instance_type.startswith('ml.p3')):
-        pytest.skip('Skipping GPU test in region {}'.format(region))
+    if ((region in NO_P2_REGIONS and instance_type.startswith('ml.p2'))
+        or (region in NO_P3_REGIONS and instance_type.startswith('ml.p3'))
+            or (region in NO_P4_REGIONS and instance_type.startswith('ml.p4'))):
+                pytest.skip('Skipping GPU test in region {}'.format(region))
 
 
 @pytest.fixture

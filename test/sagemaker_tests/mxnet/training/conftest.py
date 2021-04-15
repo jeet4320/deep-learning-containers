@@ -19,8 +19,8 @@ import boto3
 import pytest
 from sagemaker import LocalSession, Session
 from sagemaker.mxnet import MXNet
-
-from .integration import NO_P2_REGIONS, NO_P3_REGIONS
+from test.test_utils import ecr as ecr_utils
+from .integration import NO_P2_REGIONS, NO_P3_REGIONS, NO_P4_REGIONS
 from .integration.utils import get_ecr_registry
 
 
@@ -137,6 +137,35 @@ def sagemaker_session(region):
 
 
 @pytest.fixture(scope='session')
+def iad_region(request):
+    return "us-east-1"
+
+
+@pytest.fixture(scope='session')
+def iad_sagemaker_session(iad_region):
+    return Session(boto_session=boto3.Session(region_name=iad_region))
+
+
+@pytest.fixture(scope='session')
+def efa_instance_type():
+    default_instance_type = "ml.p3dn.24xlarge"
+    return default_instance_type
+
+
+
+@pytest.fixture(scope='session')
+def iad_ecr_image(ecr_image, iad_region):
+    """
+    It uploads image to IAD region and return image uri
+    """
+    image_repo_uri, image_tag = ecr_image.split(":")
+    _, image_repo_name = image_repo_uri.split("/")
+    target_image_repo_name = f"{image_repo_name}"
+    iad_ecr_image = ecr_utils.reupload_image_to_test_ecr(ecr_image, target_image_repo_name, iad_region)
+    return iad_ecr_image
+
+
+@pytest.fixture(scope='session')
 def sagemaker_local_session(region):
     return LocalSession(boto_session=boto3.Session(region_name=region))
 
@@ -166,8 +195,9 @@ def skip_gpu_instance_restricted_regions(region, instance_type):
 
     no_p2 = region in NO_P2_REGIONS and instance_type.startswith('ml.p2')
     no_p3 = region in NO_P3_REGIONS and instance_type.startswith('ml.p3')
-
-    if no_p2 or no_p3:
+    no_p4 = region in NO_P4_REGIONS and instance_type.startswith('ml.p4')
+    
+    if no_p2 or no_p3 or no_p4:
         pytest.skip('Skipping GPU test in region {} to avoid insufficient capacity'.format(region))
 
 @pytest.fixture(autouse=True)
