@@ -33,6 +33,9 @@ def validate_or_skip_smmodelparallel(ecr_image):
     if not can_run_smmodelparallel(ecr_image):
         pytest.skip("Model Parallelism is supported on CUDA 11 on PyTorch v1.6 and above")
 
+def validate_or_skip_smmodelparallel_efa(ecr_image):
+    if not can_run_smmodelparallel_efa(ecr_image):
+        pytest.skip("Model Parallelism with EFA is supported on CUDA 11.1 on PyTorch v1.8 and above")
 
 def validate_or_skip_smdataparallel(ecr_image):
     if not can_run_smdataparallel(ecr_image):
@@ -50,6 +53,10 @@ def can_run_smmodelparallel(ecr_image):
     image_cuda_version = get_cuda_version_from_tag(ecr_image)
     return Version(image_framework_version) in SpecifierSet(">=1.6") and Version(image_cuda_version.strip("cu")) >= Version("110")
 
+def can_run_smmodelparallel_efa(ecr_image):
+    _, image_framework_version = get_framework_and_version_from_tag(ecr_image)
+    image_cuda_version = get_cuda_version_from_tag(ecr_image)
+    return Version(image_framework_version) in SpecifierSet(">=1.8") and Version(image_cuda_version.strip("cu")) >= Version("111")
 
 @pytest.mark.processor("cpu")
 @pytest.mark.multinode(3)
@@ -176,6 +183,54 @@ def test_smmodelparallel_mnist_multigpu_multinode(ecr_image, instance_type, py_v
                 "mpi": {
                     "enabled": True,
                     "processes_per_host": num_processes,
+                    "custom_mpi_options": "-verbose --mca orte_base_help_aggregate 0 -x SMDEBUG_LOG_LEVEL=error -x OMPI_MCA_btl_vader_single_copy_mechanism=none -x RDMAV_FORK_SAFE=1 ",
+                },
+            },
+        )
+        pytorch.fit()
+
+@pytest.mark.integration("smmodelparallel")
+@pytest.mark.model("mnist")
+@pytest.mark.processor("gpu")
+@pytest.mark.multinode(2)
+@pytest.mark.skip_cpu
+@pytest.mark.skip_py2_containers
+@pytest.mark.parametrize("test_script, num_processes", [("smmodelparallel_pt_mnist.py", 8)])
+@pytest.mark.efa()
+def test_smmodelparallel_mnist_multigpu_multinode(ecr_image, instance_type, py_version, sagemaker_session, tmpdir, test_script, num_processes):
+    """
+    Tests pt mnist command via script mode
+    """
+    
+    instance_type = "ml.p3dn.24xlarge"
+    validate_or_skip_smmodelparallel(ecr_image)
+    validate_or_skip_smmodelparallel_efa(ecr_image)
+    with timeout(minutes=DEFAULT_TIMEOUT):
+        pytorch = PyTorch(
+            entry_point=test_script,
+            role='SageMakerRole',
+            image_uri=ecr_image,
+            source_dir=mnist_path,
+            instance_count=2,
+            instance_type=instance_type,
+            sagemaker_session=sagemaker_session,
+            hyperparameters = {"assert-losses": 1, "amp": 1, "ddp": 1, "data-dir": "data/training", "epochs": 5},
+            distribution={
+                "smdistributed": {
+                    "modelparallel": {
+                        "enabled": True,
+                        "parameters": {
+                            "partitions": 2,
+                            "microbatches": 4,
+                            "optimize": "speed",
+                            "pipeline": "interleaved",
+                            "ddp": True,
+                        },
+                    }
+                },
+                "mpi": {
+                    "enabled": True,
+                    "processes_per_host": num_processes,
                     "custom_mpi_options": "-verbose --mca orte_base_help_aggregate 0 -x SMDEBUG_LOG_LEVEL=error -x OMPI_MCA_btl_vader_single_copy_mechanism=none -x FI_EFA_USE_DEVICE_RDMA=1 -x FI_PROVIDER=efa -x RDMAV_FORK_SAFE=1 ",
                 },
             },
@@ -211,6 +266,7 @@ def test_smmodelparallel_mnist_sanity_efa(iad_ecr_image, efa_instance_type, iad_
             },
         )
         pytorch.fit()
+
 
 @pytest.mark.integration("smdataparallel")
 @pytest.mark.model("mnist")
