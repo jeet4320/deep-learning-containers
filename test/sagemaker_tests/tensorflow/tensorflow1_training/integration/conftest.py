@@ -98,20 +98,20 @@ def sagemaker_session(region):
 @pytest.fixture(scope='session')
 def iad_region(request):
     return "us-east-1"
-    
+
 
 @pytest.fixture(scope='session')
 def iad_sagemaker_session(iad_region):
     return Session(boto_session=boto3.Session(region_name=iad_region))
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def efa_instance_type():
     default_instance_type = "ml.p3dn.24xlarge"
     return default_instance_type
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def iad_ecr_image(ecr_image, iad_region):
     """
     It uploads image to IAD region and return image uri
