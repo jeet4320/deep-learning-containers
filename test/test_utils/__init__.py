@@ -176,7 +176,7 @@ def is_benchmark_dev_context():
 
 def is_time_for_canary_safety_scan():
     """
-    Canary tests run every 15 minutes. 
+    Canary tests run every 15 minutes.
     Using a 20 minutes interval to make tests run only once a day around 9 am PST (10 am during winter time).
     """
     current_utc_time = time.gmtime()
