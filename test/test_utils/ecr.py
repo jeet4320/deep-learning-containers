@@ -7,6 +7,7 @@ from test.test_utils import (
     get_region_from_image_uri,
     get_account_id_from_image_uri,
     login_to_ecr_registry,
+    get_unique_name_from_tag,
     LOGGER,
 )
 import subprocess
@@ -14,9 +15,6 @@ import os
 import boto3
 from base64 import b64decode
 import sys
-
-
-ECR_PASSWORD_FILE_PATH = os.path.join("/tmp", "ecr_login_password.txt")
 
 
 class CVESeverity(IntEnum):
@@ -140,9 +138,16 @@ def get_ecr_login_boto3(ecr_client, account_id, region):
     for auth in result['authorizationData']:
         auth_token = b64decode(auth['authorizationToken']).decode()
         user_name, password = auth_token.split(':')
-    with open(ECR_PASSWORD_FILE_PATH, "w") as file:
+    return user_name, password
+
+
+def save_credentials_to_file(file_path, password):
+    with open(file_path, "w") as file:
         file.write(f"{password}")
-    return user_name
+
+
+def delete_file(file_path):
+    subprocess.check_output(f"rm -rf {file_path}", shell=True, executable="/bin/bash")
 
 
 def reupload_image_to_test_ecr(source_image_uri, target_image_repo_name, target_region):
@@ -155,6 +160,7 @@ def reupload_image_to_test_ecr(source_image_uri, target_image_repo_name, target_
     :param target_region: str Region where test is being run
     :return: str New image URI for re-uploaded image
     """
+    ECR_PASSWORD_FILE_PATH = os.path.join("/tmp", f"{get_unique_name_from_tag(source_image_uri)}.txt")
     sts_client = boto3.client("sts", region_name=target_region)
     target_ecr_client = boto3.client("ecr", region_name=target_region)
     target_account_id = sts_client.get_caller_identity().get("Account")
@@ -174,15 +180,17 @@ def reupload_image_to_test_ecr(source_image_uri, target_image_repo_name, target_
     )
 
     client = boto3.client('ecr', region_name = image_region)
-    username = get_ecr_login_boto3(client, image_account_id, image_region)
+    username, password = get_ecr_login_boto3(client, image_account_id, image_region)
+    save_credentials_to_file(ECR_PASSWORD_FILE_PATH, password)
 
-    # using ctx.run throws error on codebuild "OSError: reading from stdin while output is captured". 
+    # using ctx.run throws error on codebuild "OSError: reading from stdin while output is captured".
     # Also it throws more errors related to awscli if in_stream=False flag is added to ctx.run which needs more deep dive
     subprocess.check_output(f"cat {ECR_PASSWORD_FILE_PATH} | docker login -u {username} --password-stdin https://{image_account_id}.dkr.ecr.{image_region}.amazonaws.com && docker pull {source_image_uri}", shell=True, executable="/bin/bash")
     subprocess.check_output(f"docker tag {source_image_uri} {target_image_uri}", shell=True, executable="/bin/bash")
-    subprocess.check_output(f"rm -rf {ECR_PASSWORD_FILE_PATH}", shell=True, executable="/bin/bash")
-    username = get_ecr_login_boto3(target_ecr_client, target_account_id, target_region)
+    delete_file(ECR_PASSWORD_FILE_PATH)
+    username, password = get_ecr_login_boto3(target_ecr_client, target_account_id, target_region)
+    save_credentials_to_file(ECR_PASSWORD_FILE_PATH, password)
     subprocess.check_output(f"cat {ECR_PASSWORD_FILE_PATH} | docker login -u {username} --password-stdin https://{target_account_id}.dkr.ecr.{target_region}.amazonaws.com && docker push {target_image_uri}", shell=True, executable="/bin/bash")
-    subprocess.check_output(f"rm -rf {ECR_PASSWORD_FILE_PATH}", shell=True, executable="/bin/bash")
+    delete_file(ECR_PASSWORD_FILE_PATH)
 
     return target_image_uri

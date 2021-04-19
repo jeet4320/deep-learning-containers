@@ -755,6 +755,15 @@ def get_region_from_image_uri(image_uri):
     return region_search.group()
 
 
+def get_unique_name_from_tag(image_uri):
+    """
+    Return the unique from the image tag.
+    :param image_uri: ECR image URI
+    :return: unique name
+    """
+    return re.sub('[^A-Za-z0-9]+', '', image_uri)
+
+
 def get_framework_and_version_from_tag(image_uri):
     """
     Return the framework and version from the image tag.

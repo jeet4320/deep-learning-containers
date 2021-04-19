@@ -243,20 +243,20 @@ def test_smmodelparallel_mnist_multigpu_multinode_efa(iad_ecr_image, efa_instanc
 @pytest.mark.skip_cpu
 @pytest.mark.efa()
 @pytest.mark.skip_py2_containers
-def test_sanity_efa(iad_ecr_image, efa_instance_type, iad_sagemaker_session):
+def test_sanity_efa(n_virginia_ecr_image, efa_instance_type, n_virginia_sagemaker_session):
     """
     Tests pt mnist command via script mode
     """
-    validate_or_skip_smmodelparallel(iad_ecr_image)
+    validate_or_skip_smmodelparallel(n_virginia_ecr_image)
     efa_test_path = os.path.join(RESOURCE_PATH, 'efa', 'test_efa.sh')
     with timeout(minutes=DEFAULT_TIMEOUT):
         pytorch = PyTorch(
             entry_point=efa_test_path,
             role='SageMakerRole',
-            image_uri=iad_ecr_image,
+            image_uri=n_virginia_ecr_image,
             instance_count=1,
             instance_type=efa_instance_type,
-            sagemaker_session=iad_sagemaker_session,
+            sagemaker_session=n_virginia_sagemaker_session,
             distribution={
                 "mpi": {
                     "enabled": True,

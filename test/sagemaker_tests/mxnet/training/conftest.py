@@ -19,9 +19,8 @@ import boto3
 import pytest
 from sagemaker import LocalSession, Session
 from sagemaker.mxnet import MXNet
-from test.test_utils import ecr as ecr_utils
 from .integration import NO_P2_REGIONS, NO_P3_REGIONS, NO_P4_REGIONS
-from .integration.utils import get_ecr_registry
+from .integration.utils import get_ecr_registry, reupload_image_to_test_ecr
 
 
 logger = logging.getLogger(__name__)
@@ -137,13 +136,13 @@ def sagemaker_session(region):
 
 
 @pytest.fixture(scope='session')
-def iad_region(request):
+def n_virginia_region(request):
     return "us-east-1"
 
 
 @pytest.fixture(scope='session')
-def iad_sagemaker_session(iad_region):
-    return Session(boto_session=boto3.Session(region_name=iad_region))
+def n_virginia_sagemaker_session(n_virginia_region):
+    return Session(boto_session=boto3.Session(region_name=n_virginia_region))
 
 
 @pytest.fixture(scope='session')
@@ -154,15 +153,15 @@ def efa_instance_type():
 
 
 @pytest.fixture(scope='session')
-def iad_ecr_image(ecr_image, iad_region):
+def n_virginia_ecr_image(ecr_image, n_virginia_region):
     """
-    It uploads image to IAD region and return image uri
+    It uploads image to n_virginia region and return image uri
     """
     image_repo_uri, image_tag = ecr_image.split(":")
     _, image_repo_name = image_repo_uri.split("/")
     target_image_repo_name = f"{image_repo_name}"
-    iad_ecr_image = ecr_utils.reupload_image_to_test_ecr(ecr_image, target_image_repo_name, iad_region)
-    return iad_ecr_image
+    n_virginia_ecr_image = reupload_image_to_test_ecr(ecr_image, target_image_repo_name, n_virginia_region)
+    return n_virginia_ecr_image
 
 
 @pytest.fixture(scope='session')
