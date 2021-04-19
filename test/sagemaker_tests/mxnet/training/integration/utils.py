@@ -15,7 +15,7 @@ from __future__ import absolute_import
 import os
 import random
 import time
-
+import re
 import boto3
 import pytest
 import subprocess

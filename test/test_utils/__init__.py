@@ -5,7 +5,7 @@ import subprocess
 import time
 import logging
 import sys
-
+import re
 import git
 import pytest
 

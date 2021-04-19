@@ -18,7 +18,7 @@ import subprocess
 import boto3
 from base64 import b64decode
 import sys
-
+import re
 import boto3
 import botocore
 

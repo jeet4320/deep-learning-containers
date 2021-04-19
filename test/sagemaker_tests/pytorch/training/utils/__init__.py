@@ -15,6 +15,7 @@ from __future__ import absolute_import
 import boto3
 import botocore
 import os
+import re
 
 
 def _botocore_resolver():
