@@ -30,8 +30,8 @@ from test.test_utils import (
     is_nightly_context,
     DEFAULT_REGION,
     P3DN_REGION,
-    UBUNTU_18_BASE_DLAMI_US_EAST_1,
-    UBUNTU_18_BASE_DLAMI_US_WEST_2,
+    UBUNTU_20_BASE_DLAMI_US_EAST_1,
+    UBUNTU_20_BASE_DLAMI_US_WEST_2,
     PT_GPU_PY3_BENCHMARK_IMAGENET_AMI_US_EAST_1,
     AML2_BASE_DLAMI_US_WEST_2,
     AML2_BASE_DLAMI_US_EAST_1,
@@ -322,9 +322,9 @@ def ec2_instance_ami(request, region):
     return (
         request.param
         if hasattr(request, "param")
-        else UBUNTU_18_BASE_DLAMI_US_EAST_1
+        else UBUNTU_20_BASE_DLAMI_US_EAST_1
         if region == "us-east-1"
-        else UBUNTU_18_BASE_DLAMI_US_WEST_2
+        else UBUNTU_20_BASE_DLAMI_US_WEST_2
     )
 
 
@@ -545,7 +545,7 @@ def ec2_instance(
             ec2_instance_ami = (
                 AML2_BASE_DLAMI_US_EAST_1
                 if ec2_instance_ami == AML2_BASE_DLAMI_US_WEST_2
-                else UBUNTU_18_BASE_DLAMI_US_EAST_1
+                else UBUNTU_20_BASE_DLAMI_US_EAST_1
             )
 
     ec2_key_name = f"{ec2_key_name}-{str(uuid.uuid4())}"
