@@ -136,7 +136,6 @@ RUN /opt/conda/bin/mamba install -y --override-channels \
     mkl-include \
     parso \
     typing \
-    conda-content-trust \
     charset-normalizer \
     packaging \
     opencv \
@@ -150,7 +149,7 @@ RUN /opt/conda/bin/mamba install -y --override-channels \
     # Adding package for studio kernels
     ipykernel \
     # patch CVE
-    "cryptography>39.0.0" \
+    "cryptography>=41.0.2" \
     # patch CVE
     "pillow>=9.4" \
     # force conda to install h5py with openmpi build, not mpich (rubik error)
