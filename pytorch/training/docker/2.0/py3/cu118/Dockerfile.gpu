@@ -316,11 +316,11 @@ RUN /opt/conda/bin/mamba install -y -c conda-forge \
 #   && cd .. \
 #   && rm -rf apex
 
-# Install Horovod (needs pytorch)
-RUN pip uninstall -y horovod \
-#  && ldconfig /usr/local/cuda-11.8/targets/x86_64-linux/lib/stubs \
- && HOROVOD_GPU_ALLREDUCE=NCCL HOROVOD_CUDA_HOME=${CUDA_HOME} HOROVOD_WITH_PYTORCH=1 pip install --no-cache-dir horovod==${HOROVOD_VERSION} \
- && ldconfig
+# # Install Horovod (needs pytorch)
+# RUN pip uninstall -y horovod \
+# #  && ldconfig /usr/local/cuda-11.8/targets/x86_64-linux/lib/stubs \
+#  && HOROVOD_GPU_ALLREDUCE=NCCL HOROVOD_CUDA_HOME=${CUDA_HOME} HOROVOD_WITH_PYTORCH=1 pip install --no-cache-dir horovod==${HOROVOD_VERSION} \
+#  && ldconfig
 
 RUN HOME_DIR=/root \
  && curl -o ${HOME_DIR}/oss_compliance.zip https://aws-dlinfra-utilities.s3.amazonaws.com/oss_compliance.zip \
